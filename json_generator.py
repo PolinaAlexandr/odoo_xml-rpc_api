@@ -24,9 +24,9 @@ def generate_item():
 def send_json(item):
     connection = pika.BlockingConnection(pika.ConnectionParameters(cfg.RABBIT_HOST))
     channel = connection.channel()
-    channel.queue_declare(queue='people_records')
+    channel.queue_declare(queue=cfg.RABBIT_QUEUE)
     channel.basic_publish(exchange='',
-                      routing_key='hello!',
+                      routing_key=cfg.RABBIT_QUEUE,
                       body=item)
     print("[x] Sent json data to RabbitMQ", item)
     connection.close()
