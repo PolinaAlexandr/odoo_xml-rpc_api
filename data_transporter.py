@@ -6,15 +6,15 @@ import json
 def callback(ch, method, properties, body):
     data_dict = json.loads(body)
     print(" [x] Received %r" % body)
-    common = xmlrpc.client.ServerProxy('http://localhost:8069/xmlrpc/2/common')
-    print(common.version())
-    uid = common.authenticate('test_odoo', 'user@domain.com', 'odoo', {})
-
-    # print('uid', uid)
-    
-    models = xmlrpc.client.ServerProxy('http://localhost:8069/xmlrpc/2/object')
-    id = models.execute_kw('test_odoo', uid, 'odoo', 'res.partner', 'create', [data_dict])
-    print(id)
+    try:
+        common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(cfg.ODOO_URL))
+        uid = common.authenticate('postgres', 'odoo', 'odoo', {})
+        if uid:
+            models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(cfg.ODOO_URL))
+            id = models.execute_kw('postgres', uid, 'odoo', 'res.partner', 'create', [data_dict])
+            print(id)
+    except Exception as ex:
+        print(ex)
 
 
 if __name__ == "__main__":
@@ -22,9 +22,10 @@ if __name__ == "__main__":
     channel = connection.channel()
     channel.queue_declare(queue=cfg.RABBIT_QUEUE)
 
-    channel.basic_consume(callback,
-                      queue=cfg.RABBIT_QUEUE,
-                      no_ack=True)
+    channel.basic_consume(
+        cfg.RABBIT_QUEUE,
+        callback,
+        True
+    )
 
-    print(' [*] Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()
